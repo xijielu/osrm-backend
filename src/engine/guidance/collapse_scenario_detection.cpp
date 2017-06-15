@@ -61,6 +61,17 @@ bool isShortAndUndisturbed(const RouteStep &step)
     return is_short && noIntermediaryIntersections(step);
 }
 
+bool isValidUturnCombination(const RouteStepIterator first, const RouteStepIterator second)
+{
+    auto has_uturn = hasModifier(*first, DirectionModifier::UTurn) ||
+                     hasModifier(*second, DirectionModifier::UTurn);
+    auto const from_name_change_into_uturn =
+        hasTurnType(*first, TurnType::NewName) && hasModifier(*second, DirectionModifier::UTurn);
+    auto const uturn_into_name_change =
+        hasTurnType(*second, TurnType::NewName) && hasModifier(*first, DirectionModifier::UTurn);
+    return !has_uturn || from_name_change_into_uturn || uturn_into_name_change;
+}
+
 } // namespace
 
 bool basicCollapsePreconditions(const RouteStepIterator first, const RouteStepIterator second)
@@ -70,7 +81,10 @@ bool basicCollapsePreconditions(const RouteStepIterator first, const RouteStepIt
 
     const auto waypoint_type = hasWaypointType(*first) || hasWaypointType(*second);
 
-    return !has_roundabout_type && !waypoint_type && haveSameMode(*first, *second);
+    const auto contains_bad_uturn = !isValidUturnCombination(first, second);
+
+    return !has_roundabout_type && !waypoint_type && haveSameMode(*first, *second) &&
+           !contains_bad_uturn;
 }
 
 bool basicCollapsePreconditions(const RouteStepIterator first,
@@ -81,8 +95,11 @@ bool basicCollapsePreconditions(const RouteStepIterator first,
                                      hasRoundaboutType(second->maneuver.instruction) ||
                                      hasRoundaboutType(third->maneuver.instruction);
 
+    const auto contains_bad_uturn =
+        !isValidUturnCombination(first, second) && !isValidUturnCombination(second, third);
+
     // require modes to match up
-    return !has_roundabout_type && haveSameMode(*first, *second, *third);
+    return !has_roundabout_type && haveSameMode(*first, *second, *third) && !contains_bad_uturn;
 }
 
 bool isStaggeredIntersection(const RouteStepIterator step_prior_to_intersection,
