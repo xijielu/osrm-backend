@@ -22,7 +22,7 @@ struct ProfileProperties
         : traffic_signal_penalty(0), u_turn_penalty(0),
           max_speed_for_map_matching(DEFAULT_MAX_SPEED), continue_straight_at_waypoint(true),
           use_turn_restrictions(false), left_hand_driving(false), fallback_to_duration(true),
-          weight_name{"duration"}, call_tagless_node_function(true)
+          weight_name{"duration"}, call_tagless_node_function(true), enable_way_coordinates(false)
     {
         BOOST_ASSERT(weight_name[MAX_WEIGHT_NAME_LENGTH] == '\0');
     }
@@ -90,6 +90,8 @@ struct ProfileProperties
     bool force_split_edges = false;
 
     bool call_tagless_node_function = true;
+    // If true, way:nodes() objects will have :lon() and :lat() values populated in the way_function
+    bool enable_way_coordinates = false;
 };
 }
 }
