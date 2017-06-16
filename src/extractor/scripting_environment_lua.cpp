@@ -650,10 +650,10 @@ Sol2ScriptingEnvironment::GetStringListFromTable(const std::string &table_name)
     sol::table table = context.state["profile"][table_name];
     if (table.valid())
     {
-        table.for_each([&](sol::object const &key, sol::object const &value) {
-            strings.push_back(value.as<std::string>());
-            (void)key; // avoid warning about unused parameter
-        });
+        for (auto &&pair : table)
+        {
+            strings.push_back(pair.second.as<std::string>());
+        };
     }
     return strings;
 }
