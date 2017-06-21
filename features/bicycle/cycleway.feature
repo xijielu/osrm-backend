@@ -94,4 +94,4 @@ Feature: Bike - Cycle tracks/lanes
             | motorway    | track    | yes    | 15 km/h |            |
             | residential | track    | yes    | 15 km/h | 6 km/h +-1 |
             | cycleway    | track    | yes    | 15 km/h | 6 km/h +-1 |
-            | footway     | track    | yes    | 15 km/h | 5 km/h +-1 |
+            | footway     | track    | yes    | 15 km/h | 6 km/h +-1 |
