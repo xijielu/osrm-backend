@@ -309,7 +309,7 @@ function way_function (way, result)
   local maxspeed_backward = parse_maxspeed(way:get_value_by_key( "maxspeed:backward"))
   local barrier = way:get_value_by_key("barrier")
   local oneway = way:get_value_by_key("oneway")
-  local oneway_class = way:get_value_by_key("oneway:bicycle")
+  local oneway_bicycle = way:get_value_by_key("oneway:bicycle")
   local cycleway = way:get_value_by_key("cycleway")
   local cycleway_left = way:get_value_by_key("cycleway:left")
   local cycleway_right = way:get_value_by_key("cycleway:right")
@@ -321,7 +321,7 @@ function way_function (way, result)
   local bicycle = way:get_value_by_key("bicycle")
 
 
-  local pushing_possible = false
+  local way_type_allows_pushing = false
 
   -- speed
   local bridge_speed = profile.bridge_speeds[bridge]
@@ -332,7 +332,7 @@ function way_function (way, result)
     end
     result.forward_speed = bridge_speed
     result.backward_speed = bridge_speed
-    pushing_possible = true
+    way_type_allows_pushing = true
   elseif profile.route_speeds[route] then
     -- ferries (doesn't cover routes tagged using relations)
     result.forward_mode = mode.ferry
@@ -347,12 +347,12 @@ function way_function (way, result)
   elseif railway and profile.platform_speeds[railway] then
     result.forward_speed = profile.platform_speeds[railway]
     result.backward_speed = profile.platform_speeds[railway]
-    pushing_possible = true
+    way_type_allows_pushing = true
   -- public_transport platforms (new tagging platform)
   elseif public_transport and profile.platform_speeds[public_transport] then
     result.forward_speed = profile.platform_speeds[public_transport]
     result.backward_speed = profile.platform_speeds[public_transport]
-    pushing_possible = true
+    way_type_allows_pushing = true
   -- railways
   elseif profile.use_public_transport and railway and profile.railway_speeds[railway] and profile.access_tag_whitelist[access] then
     result.forward_mode = mode.train
@@ -363,17 +363,17 @@ function way_function (way, result)
     -- parking areas
     result.forward_speed = profile.amenity_speeds[amenity]
     result.backward_speed = profile.amenity_speeds[amenity]
-    pushing_possible = true
+    way_type_allows_pushing = true
   elseif profile.bicycle_speeds[data.highway] then
     -- regular ways
     result.forward_speed = profile.bicycle_speeds[data.highway]
     result.backward_speed = profile.bicycle_speeds[data.highway]
-    pushing_possible = true
+    way_type_allows_pushing = true
   elseif access and profile.access_tag_whitelist[access]  then
     -- unknown way, but valid access tag
     result.forward_speed = default_speed
     result.backward_speed = default_speed
-    pushing_possible = true
+    way_type_allows_pushing = true
   end
 
   -- oneway
@@ -381,18 +381,14 @@ function way_function (way, result)
   if junction == "roundabout" or junction == "circular" or data.highway == "motorway" then
     implied_oneway = true
   end
-  local oneway_class_found = false
   local reverse = false
 
-  if oneway_class == "yes" or oneway_class == "1" or oneway_class == "true" then
+  if oneway_bicycle == "yes" or oneway_bicycle == "1" or oneway_bicycle == "true" then
     result.backward_mode = mode.inaccessible
-    oneway_class_found = true
-  elseif oneway_class == "no" or oneway_class == "0" or oneway_class == "false" then
+  elseif oneway_bicycle == "no" or oneway_bicycle == "0" or oneway_bicycle == "false" then
    -- prevent other cases
-    oneway_class_found = true
-  elseif oneway_class == "-1" then
+  elseif oneway_bicycle == "-1" then
     result.forward_mode = mode.inaccessible
-    oneway_class_found = true
     reverse = true
   elseif oneway == "yes" or oneway == "1" or oneway == "true" then
     result.backward_mode = mode.inaccessible
@@ -462,7 +458,7 @@ function way_function (way, result)
           push_forward_speed = walking_speed
         elseif foot_backward == 'yes' then
           push_backward_speed = walking_speed
-        elseif pushing_possible then
+        elseif way_type_allows_pushing then
           push_forward_speed = walking_speed
           if not implied_oneway then
             push_backward_speed = walking_speed
