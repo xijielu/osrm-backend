@@ -496,10 +496,10 @@ function way_function (way, result)
 
   -- not routable if no speed assigned
   -- this avoid assertions in debug builds
-  if result.forward_speed <= 0 then
+  if result.forward_speed <= 0 and result.duration <= 0 then
     result.forward_mode = mode.inaccessible
   end
-  if result.backward_speed <= 0 then
+  if result.backward_speed <= 0 and result.duration <= 0 then
     result.backward_mode = mode.inaccessible
   end
 
