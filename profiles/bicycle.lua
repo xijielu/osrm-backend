@@ -489,8 +489,20 @@ function way_function (way, result)
   end
 
 
+
   -- maxspeed
   limit( result, maxspeed, maxspeed_forward, maxspeed_backward )
+
+
+  -- not routable if no speed assigned
+  -- this avoid assertions in debug builds
+  if result.forward_speed <= 0 then
+    result.forward_mode = mode.inaccessible
+  end
+  if result.backward_speed <= 0 then
+    result.backward_mode = mode.inaccessible
+  end
+
 
   -- convert duration into cyclability
   if properties.weight_name == 'cyclability' then
