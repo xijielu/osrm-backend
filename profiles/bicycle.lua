@@ -309,7 +309,7 @@ function way_function (way, result)
   local maxspeed_backward = parse_maxspeed(way:get_value_by_key( "maxspeed:backward"))
   local barrier = way:get_value_by_key("barrier")
   local oneway = way:get_value_by_key("oneway")
-  local onewayClass = way:get_value_by_key("oneway:bicycle")
+  local oneway_class = way:get_value_by_key("oneway:bicycle")
   local cycleway = way:get_value_by_key("cycleway")
   local cycleway_left = way:get_value_by_key("cycleway:left")
   local cycleway_right = way:get_value_by_key("cycleway:right")
@@ -320,7 +320,8 @@ function way_function (way, result)
   local foot_backward = way:get_value_by_key("foot:backward")
   local bicycle = way:get_value_by_key("bicycle")
 
-  local allowed_way_type = false
+
+  local pushing_possible = false
 
   -- speed
   local bridge_speed = profile.bridge_speeds[bridge]
@@ -331,7 +332,7 @@ function way_function (way, result)
     end
     result.forward_speed = bridge_speed
     result.backward_speed = bridge_speed
-    allowed_way_type = true
+    pushing_possible = true
   elseif profile.route_speeds[route] then
     -- ferries (doesn't cover routes tagged using relations)
     result.forward_mode = mode.ferry
@@ -346,12 +347,12 @@ function way_function (way, result)
   elseif railway and profile.platform_speeds[railway] then
     result.forward_speed = profile.platform_speeds[railway]
     result.backward_speed = profile.platform_speeds[railway]
-    allowed_way_type = true
+    pushing_possible = true
   -- public_transport platforms (new tagging platform)
   elseif public_transport and profile.platform_speeds[public_transport] then
     result.forward_speed = profile.platform_speeds[public_transport]
     result.backward_speed = profile.platform_speeds[public_transport]
-    allowed_way_type = true
+    pushing_possible = true
   -- railways
   elseif profile.use_public_transport and railway and profile.railway_speeds[railway] and profile.access_tag_whitelist[access] then
     result.forward_mode = mode.train
@@ -362,36 +363,36 @@ function way_function (way, result)
     -- parking areas
     result.forward_speed = profile.amenity_speeds[amenity]
     result.backward_speed = profile.amenity_speeds[amenity]
-    allowed_way_type = true
+    pushing_possible = true
   elseif profile.bicycle_speeds[data.highway] then
     -- regular ways
     result.forward_speed = profile.bicycle_speeds[data.highway]
     result.backward_speed = profile.bicycle_speeds[data.highway]
-    allowed_way_type = true
+    pushing_possible = true
   elseif access and profile.access_tag_whitelist[access]  then
     -- unknown way, but valid access tag
     result.forward_speed = default_speed
     result.backward_speed = default_speed
-    allowed_way_type = true
+    pushing_possible = true
   end
 
   -- oneway
-  local impliedOneway = false
+  local implied_oneway = false
   if junction == "roundabout" or junction == "circular" or data.highway == "motorway" then
-    impliedOneway = true
+    implied_oneway = true
   end
-  local onewayClassSet = false
+  local oneway_class_found = false
   local reverse = false
 
-  if onewayClass == "yes" or onewayClass == "1" or onewayClass == "true" then
+  if oneway_class == "yes" or oneway_class == "1" or oneway_class == "true" then
     result.backward_mode = mode.inaccessible
-    onewayClassSet = true
-  elseif onewayClass == "no" or onewayClass == "0" or onewayClass == "false" then
+    oneway_class_found = true
+  elseif oneway_class == "no" or oneway_class == "0" or oneway_class == "false" then
    -- prevent other cases
-    onewayClassSet = true
-  elseif onewayClass == "-1" then
+    oneway_class_found = true
+  elseif oneway_class == "-1" then
     result.forward_mode = mode.inaccessible
-    onewayClassSet = true
+    oneway_class_found = true
     reverse = true
   elseif oneway == "yes" or oneway == "1" or oneway == "true" then
     result.backward_mode = mode.inaccessible
@@ -400,12 +401,9 @@ function way_function (way, result)
   elseif oneway == "-1" then
     result.forward_mode = mode.inaccessible
     reverse = true
-  elseif impliedOneway then
-    print('set implied')
+  elseif implied_oneway then
     result.backward_mode = mode.inaccessible
   end
-
-  print('oneway:    ', result.backward_mode,result.forward_mode )
 
   -- cycleway
   local has_cycleway_left = false
@@ -430,17 +428,13 @@ function way_function (way, result)
     has_cycleway_right = result.forward_mode ~= mode.inaccessible
   end
 
-  print('cycleways',has_cycleway_left,has_cycleway_right )
-
 
   if has_cycleway_left then
-    print('left cycleway')
     result.backward_mode = mode.cycling
     result.backward_speed = profile.bicycle_speeds["cycleway"]
   end
 
   if has_cycleway_right then
-    print('right cycleway')
     result.forward_mode = mode.cycling
     result.forward_speed = profile.bicycle_speeds["cycleway"]
   end
@@ -448,7 +442,6 @@ function way_function (way, result)
   -- pushing bikes - if no other mode found
   if result.forward_mode == mode.inaccessible or result.backward_mode == mode.inaccessible or
     result.forward_speed == -1 or result.backward_speed == -1 then
-    print('check pushing' )
     if foot ~= 'no' then
       local push_forward_speed = nil
       local push_backward_speed = nil
@@ -462,17 +455,16 @@ function way_function (way, result)
       else
         if foot == 'yes' then
           push_forward_speed = walking_speed
-          if not impliedOneway then
+          if not implied_oneway then
             push_backward_speed = walking_speed
           end
         elseif foot_forward == 'yes' then
           push_forward_speed = walking_speed
         elseif foot_backward == 'yes' then
           push_backward_speed = walking_speed
-        elseif allowed_way_type then
-          print('foot!', data.highway)
+        elseif pushing_possible then
           push_forward_speed = walking_speed
-          if not impliedOneway then
+          if not implied_oneway then
             push_backward_speed = walking_speed
           end
         end
@@ -490,8 +482,6 @@ function way_function (way, result)
     end
 
   end
-
-  print('result:    ',result.backward_mode,result.forward_mode )
 
 
   -- dismount
